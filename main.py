@@ -1,78 +1,47 @@
-import sys
-from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QAction, QTabWidget, QVBoxLayout, QTableView
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot
+import requests
+import datetime as dt
+import tables
+
+def temperature_and_humidity_sensors():
+    sensors = []
+    for i in range(1, 5):
+        link = f'https://dt.miet.ru/ppo_it/api/temp_hum/{i}'
+        response = requests.get(link)
+        sensors.append(response.json())
+    return sensors
 
 
-class App(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.left = 0
-        self.top = 0
-        self.width = 300
-        self.height = 200
-        self.setWindowTitle('gjhkghgjk')
-        self.setGeometry(self.left, self.top, self.width, self.height)
-
-        self.table_widget = MyTableWidget(self)
-        self.setCentralWidget(self.table_widget)
-
-        self.show()
-
-
-class MyTableWidget(QWidget):
-    def __init__(self, parent):
-        super(QWidget, self).__init__(parent)
-        self.layout = QVBoxLayout(self)
-
-        # Initialize tab screen
-        self.tabs = QTabWidget()
-        self.tab1 = StaffWidget()
-        self.tab2 = QWidget()
-        self.tabs.resize(300, 200)
-
-        # Add tabs
-        self.tabs.addTab(self.tab1, "Staff")
-
-        # Add tabs to widget
-        self.layout.addWidget(self.tabs)
-        self.setLayout(self.layout)
+def air_temperature():
+    sensors = []
+    cur_time = dt.datetime.now()
+    for i in range(1, 7):
+        link = f'https://dt.miet.ru/ppo_it/api/hum/{i}'
+        response = requests.get(link)
+        resp = response.json()
+        sens = Air_sens()
+        sens.device_id = resp['id']
+        sens.hum = resp['humidity']
+        sens.time = cur_time
+        sensors.append(sens)
+    return sensors
 
 
-class StaffWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-        db = QSqlDatabase.addDatabase('QSQLITE')
-        # Укажем имя базы данных
-        db.setDatabaseName('214.db')
-        # И откроем подключение
-        db.open()
-
-        view = QTableView(self)
-        # Создадим объект QSqlTableModel,
-        # зададим таблицу, с которой он будет работать,
-        #  и выберем все данные
-        model = QSqlTableModel(self, db)
-        model.setTable('Holel')
-        model.select()
-
-        # Для отображения данных на виджете
-        # свяжем его и нашу модель данных
-        view.setModel(model)
-        view.move(10, 10)
-        view.resize(617, 315)
-        self.layout = QVBoxLayout(self)
-        self.pushButton1 = QPushButton("Add")
-        self.layout.addWidget(view)
-        self.layout.addWidget(self.pushButton1)
-        self.setLayout(self.layout)
+def window_pane_control(state):
+    link = f'https://dt.miet.ru/ppo_it/api/fork_drive?state={state}'
+    response = requests.patch(link)
+    return response.json()
 
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = App()
-    sys.exit(app.exec_())
+def management_of_watering_beds(state, id):
+    link = f'https://dt.miet.ru/ppo_it/api/watering?state={state}&id={id}'
+    response = requests.patch(link)
+    return response.json()
+
+
+def control_of_the_humidification_system(state_value):
+    link = f'https://dt.miet.ru/ppo_it/api/total_hum?state={state_value}'
+    response = requests.patch(link)
+    return response.json()
+
+
+print(air_temperature())
